@@ -11,6 +11,8 @@ RUN docker-php-ext-install pdo_mysql \
     && apt-get install libicu-dev -y \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl \
+    && docker-php-ext-install mysqli \
+    && docker-php-ext-enable mysqli \
     && apt-get remove libicu-dev icu-devtools -y
 RUN { \
     echo 'opcache.memory_consumption=128'; \
@@ -25,6 +27,7 @@ COPY wp.conf /etc/nginx/sites-enabled/default
 COPY entrypoint.sh /etc/entrypoint.sh
 
 COPY --chown=www-data:www-data wordpress /var/www/wordpress
+COPY --chown=www-data:www-data wp-config.php /var/www/wordpress/wp-config.php
 
 WORKDIR /var/www/wordpress
 
