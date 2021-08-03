@@ -1,18 +1,33 @@
-FROM nginx:1.20.1
+FROM php:8.0-fpm
 
-RUN mkdir /var/run/php
+RUN apt update -y \
+    && apt install -y nginx
 
-RUN apt update -y && apt upgrade -y
-RUN apt install -y php php-fpm php-mysql
-RUN apt install -y php-curl php-gd php-intl php-mbstring php-soap php-xml php-xmlrpc php-zip
+# PHP_CPPFLAGS are used by the docker-php-ext-* scripts
+ENV PHP_CPPFLAGS="$PHP_CPPFLAGS -std=c++11"
 
-COPY wordpress /var/www/wordpress
-COPY wp.conf /etc/nginx/conf.d/default.conf
-COPY wp-config.php /var/www/wordpress/wp-config.php
+RUN docker-php-ext-install pdo_mysql \
+    && docker-php-ext-install opcache \
+    && apt-get install libicu-dev -y \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install intl \
+    && apt-get remove libicu-dev icu-devtools -y
+RUN { \
+    echo 'opcache.memory_consumption=128'; \
+    echo 'opcache.interned_strings_buffer=8'; \
+    echo 'opcache.max_accelerated_files=4000'; \
+    echo 'opcache.revalidate_freq=2'; \
+    echo 'opcache.fast_shutdown=1'; \
+    echo 'opcache.enable_cli=1'; \
+    } > /usr/local/etc/php/conf.d/php-opocache-cfg.ini
 
-RUN ln -s /usr/sbin/php-fpm7.3 /usr/sbin/php-fpm
-RUN php-fpm &
-RUN touch /var/run/php/php7.3-fpm.sock
-RUN chmod 777 /var/run/php/php7.3-fpm.sock
+COPY wp.conf /etc/nginx/sites-enabled/default
+COPY entrypoint.sh /etc/entrypoint.sh
+
+COPY --chown=www-data:www-data wordpress /var/www/wordpress
+
+WORKDIR /var/www/wordpress
 
 EXPOSE 80
+
+ENTRYPOINT ["sh", "/etc/entrypoint.sh"]
