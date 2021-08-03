@@ -10,6 +10,8 @@ services:
             DB_HOST: mysql
         depends_on:
             - mysql
+        volumes:
+            - wp_data:/var/www/wordpress
     mysql:
         image: mysql:8.0
         environment:
@@ -22,3 +24,4 @@ services:
             - db_data:/var/lib/mysql
 volumes:
     db_data:
+    wp_data:
